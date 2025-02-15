@@ -1,0 +1,301 @@
+npm install pdf-viewer-reactjs
+
+
+
+// =========================================== pdf ====================================
+
+import React, { useState } from "react";
+import PDFViewer from "pdf-viewer-reactjs";
+import "./App.css"; // You can style as needed
+
+const App = () => {
+  const [file, setFile] = useState(null);
+
+  // Handle file upload
+  const onFileChange = (e) => {
+    const uploadedFile = e.target.files[0];
+    if (uploadedFile) {
+      setFile(URL.createObjectURL(uploadedFile)); // Create an object URL to display the PDF
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <div className="upload-section">
+        <input type="file" onChange={onFileChange} accept="application/pdf" />
+      </div>
+
+      <div className="pdf-viewer">
+        {file && (
+          <PDFViewer
+            document={{
+              url: file,
+            }}
+            scale={1.5} // Optional: adjust scale of the PDF
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
+
+
+
+// =========================================  EXCEL =============================================
+
+
+npm install xlsx
+
+
+
+import React, { useState } from "react";
+import * as XLSX from "xlsx";
+
+const App = () => {
+  const [file, setFile] = useState(null);
+  const [sheets, setSheets] = useState([]);
+
+  // Handle file upload
+  const onFileChange = (e) => {
+    const uploadedFile = e.target.files[0];
+    if (uploadedFile) {
+      // Read the Excel file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = event.target.result;
+
+        // Use ArrayBuffer instead of BinaryString
+        const workbook = XLSX.read(data, { type: "array" });
+
+        // Get the sheet names
+        const sheetNames = workbook.SheetNames;
+        setSheets(sheetNames);
+
+        // Set the first sheet data
+        const firstSheet = workbook.Sheets[sheetNames[0]];
+        const sheetData = XLSX.utils.sheet_to_json(firstSheet);
+        setFile(sheetData);
+      };
+      reader.readAsArrayBuffer(uploadedFile); 
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <div className="upload-section">
+        <input type="file" onChange={onFileChange} accept=".xlsx,.xls" />
+      </div>
+
+      <div className="excel-viewer">
+        {/* Check if file is loaded and has data */}
+        {file && file.length > 0 ? (
+          <div>
+            <table>
+              <thead>
+                <tr>
+                  {Object.keys(file[0]).map((key) => (
+                    <th key={key}>{key}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {file.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {Object.values(row).map((value, colIndex) => (
+                      <td key={colIndex}>{value}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No data available. Please upload a file.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
+
+
+
+
+
+------------------------------------------------------------------------------------------
+
+import React, { useState } from "react";
+import * as XLSX from "xlsx";
+import "./App.css"; // You can style as needed
+
+const App = () => {
+  const [file, setFile] = useState(null);
+  const [sheets, setSheets] = useState([]);
+  const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
+
+  // Handle file upload
+  const onFileChange = (e) => {
+    const uploadedFile = e.target.files[0];
+    if (uploadedFile) {
+      // Read the Excel file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = event.target.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+
+        // Get the sheet names
+        const sheetNames = workbook.SheetNames;
+        setSheets(sheetNames);
+
+        // Set the first sheet data
+        const firstSheet = workbook.Sheets[sheetNames[0]];
+        const sheetData = XLSX.utils.sheet_to_json(firstSheet);
+        setFile(sheetData);
+      };
+      reader.readAsBinaryString(uploadedFile);
+    }
+  };
+
+  // Handle sheet navigation
+  const navigateSheet = (direction) => {
+    let newIndex = currentSheetIndex + direction;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= sheets.length) newIndex = sheets.length - 1;
+
+    const workbook = XLSX.read(file, { type: "binary" });
+    const sheetName = sheets[newIndex];
+    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    setCurrentSheetIndex(newIndex);
+    setFile(sheetData);
+  };
+
+  return (
+    <div className="app-container">
+      <div className="upload-section">
+        <input type="file" onChange={onFileChange} accept=".xlsx,.xls" />
+      </div>
+
+      <div className="excel-viewer">
+        {/* Check if file is loaded and has data */}
+        {file && file.length > 0 ? (
+          <div>
+            <h3>{sheets[currentSheetIndex]}</h3>
+            <table>
+              <thead>
+                <tr>
+                  {Object.keys(file[0]).map((key) => (
+                    <th key={key}>{key}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {file.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {Object.values(row).map((value, colIndex) => (
+                      <td key={colIndex}>{value}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No data available. Please upload a file.</p>
+        )}
+      </div>
+
+      {/* Controls for sheet navigation */}
+      {sheets.length > 0 && (
+        <div className="controls">
+          <button
+            onClick={() => navigateSheet(-1)}
+            disabled={currentSheetIndex === 0}
+          >
+            Previous Sheet
+          </button>
+          <span>
+            Sheet {currentSheetIndex + 1} of {sheets.length}
+          </span>
+          <button
+            onClick={() => navigateSheet(1)}
+            disabled={currentSheetIndex === sheets.length - 1}
+          >
+            Next Sheet
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
+
+
+-------------------------------------------------------------------------------------------------------
+
+
+// ======================================== WORD =============================================
+
+
+npm install mammoth
+
+
+import React, { useState } from "react";
+import mammoth from "mammoth";
+import "./App.css"; // You can style as needed
+
+const App = () => {
+  const [file, setFile] = useState(null);
+  const [docContent, setDocContent] = useState(""); // To store the content of the DOCX file
+
+  // Handle file upload
+  const onFileChange = (e) => {
+    const uploadedFile = e.target.files[0];
+    if (uploadedFile) {
+      // Use FileReader to read the DOCX file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const arrayBuffer = event.target.result;
+
+        // Convert the DOCX file to text using mammoth
+        mammoth.extractRawText({ arrayBuffer })
+          .then((result) => {
+            setDocContent(result.value); // Set the document content to the state
+          })
+          .catch((err) => {
+            console.error("Error reading DOCX file:", err);
+          });
+      };
+      reader.readAsArrayBuffer(uploadedFile); // Read as ArrayBuffer
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <div className="upload-section">
+        <input type="file" onChange={onFileChange} accept=".docx" />
+      </div>
+
+      <div className="doc-viewer">
+        {/* Check if there is content to display */}
+        {docContent ? (
+          <div>
+            <h3>Document Content:</h3>
+            <div className="doc-content">
+              {/* Render the content from the DOCX */}
+              <pre>{docContent}</pre>
+            </div>
+          </div>
+        ) : (
+          <p>No content available. Please upload a DOCX file.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
